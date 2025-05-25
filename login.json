@@ -1,0 +1,57 @@
+import streamlit as st
+import sqlite3
+import json
+import requests
+from streamlit_lottie import st_lottie
+
+# 🔄 Load Lottie animation (supports URL or local file)
+def load_lottiefile(filepath_or_url: str):
+    try:
+        if filepath_or_url.startswith("http"):
+            r = requests.get(filepath_or_url)
+            if r.status_code != 200:
+                raise Exception("Request failed")
+            return r.json()
+        else:
+            with open(filepath_or_url, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        st.warning(f"⚠️ Could not load animation {filepath_or_url}: {e}")
+        return None
+
+# 🔐 Verify credentials
+def check_credentials(username, password):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
+    data = c.fetchone()
+    conn.close()
+    return data
+
+# 🔐 Login Page
+def login():
+    st.markdown("<h1 style='text-align: center;'>🔐 Login to Your Account</h1>", unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        # ✅ Load animation from LottieFiles URL
+        lottie_url = "https://assets2.lottiefiles.com/packages/lf20_jcikwtux.json"  # You can replace this with any Lottie URL
+        lottie_login = load_lottiefile(lottie_url)
+        if lottie_login:
+            st_lottie(lottie_login, height=300, loop=True)
+
+    with col2:
+        st.subheader("🔑 Login")
+        username = st.text_input("👤 Username")
+        password = st.text_input("🔒 Password", type="password")
+
+        if st.button("🔓 Login"):
+            user = check_credentials(username, password)
+            if user:
+                st.success(f"✅ Welcome back, {username}!")
+                st.session_state.authenticated = True
+                st.session_state.page = "app"
+            else:
+                st.error("❌ Invalid username or password.")
+
+        if st.button("📝 Don't have an account? Sign up"):
+            st.session_state.page = "signup"
